@@ -1,0 +1,57 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="{% url 'core:home' %}">
+            FastLog
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'core:home' %}">Home</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'tracking:customers' %}">Clientes</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'tracking:orders' %}">Pedidos</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'tracking:carriers' %}">Transportadoras</a>
+                </li>
+            </ul>
+
+            <ul class="navbar-nav ms-auto">
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <span class="navbar-text me-3">
+                            Olá, {{ user.username }}
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        {% comment %} <form method="post" action="{% url 'logout' %}" class="d-inline"> {% endcomment %}
+                        <form method="post" action="." class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-light btn-sm">
+                                Sair
+                            </button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light btn-sm" href="#">
+                        {% comment %} <a class="btn btn-outline-light btn-sm" href="{% url 'login' %}"> {% endcomment %}
+                            Entrar
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
