@@ -3,51 +3,28 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<div class="row g-4">
+<div class="row">
     <div class="col-12">
-        <div class="p-4 p-md-5 mb-4 bg-white border rounded-3 shadow-sm">
+        <div class="p-4 p-md-4 mb-4 bg-white border rounded-3 shadow-sm">
             <div class="container-fluid py-2">
                 <h1 class="display-6 fw-bold">Bem-vindo ao FastLog</h1>
                 <p class="col-md-8 fs-5 text-muted">
-                    Consulte o status de entregas, acompanhe pedidos e visualize informações
-                    de clientes e transportadoras em um só lugar.
+                    Consulte o status de seus pedidos.
                 </p>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-12">
         <div class="card shadow-sm h-100">
             <div class="card-body">
                 <h5 class="card-title">Pedidos</h5>
                 <p class="card-text text-muted">
                     Consulte pedidos cadastrados e acompanhe o andamento de cada entrega.
                 </p>
+                <input type="text" class="form-control mb-3" placeholder="CNPJ">
+                <input type="text" class="form-control mb-3" placeholder="Razão Social">
                 <a href="{% url 'tracking:orders' %}" class="btn btn-outline-primary">Ver pedidos</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <h5 class="card-title">Clientes</h5>
-                <p class="card-text text-muted">
-                    Acesse dados dos clientes e acompanhe o histórico de solicitações.
-                </p>
-                <a href="{% url 'tracking:customers' %}" class="btn btn-outline-primary">Ver clientes</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <h5 class="card-title">Transportadoras</h5>
-                <p class="card-text text-muted">
-                    Consulte informações das transportadoras e o status logístico das entregas.
-                </p>
-                <a href="{% url 'tracking:carriers' %}" class="btn btn-outline-primary">Ver transportadoras</a>
             </div>
         </div>
     </div>
