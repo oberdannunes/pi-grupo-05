@@ -1,0 +1,23 @@
+{% extends "core/base.html" %}
+
+{% block title %}Consultar Pedido{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white text-center py-4">
+                <h4 class="mb-1">Consultar Status de Pedido</h4>
+                <p class="mb-0" style="opacity: 0.85;">Informe os dados para verificar o status da entrega</p>
+            </div>
+            <div class="card-body p-4">
+                <input type="text" class="form-control mb-3" placeholder="CNPJ">
+                <input type="text" class="form-control mb-3" placeholder="Número da Nota Fiscal (NFe)">
+                <a href="{% url 'tracking:order_detail' order_id=1 %}" class="btn btn-primary w-100">Consultar</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "core/base.html" %}
+
+{% block title %}Status do Pedido{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+
+        <a href="{% url 'core:home' %}" class="btn btn-outline-secondary mb-3">Voltar</a>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white text-center py-4">
+                <h4 class="mb-1">Status do Pedido</h4>
+                <span class="badge bg-light text-primary">NFe: 44093</span>
+            </div>
+            <div class="card-body text-center p-4">
+                <span class="badge bg-success fs-5 p-3">Entregue</span>
+                <p class="text-muted mt-3 mb-0">Entrega realizada em 14/01/2024</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
