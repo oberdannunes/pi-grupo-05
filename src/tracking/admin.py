@@ -1,4 +1,5 @@
 from importlib.resources import path
+import os
 
 from django import forms
 from django.contrib import admin
@@ -25,13 +26,29 @@ class CityAdmin(admin.ModelAdmin):
     country.short_description = "Country"
 
 class UploadForm(forms.Form):
-    docfile = forms.FileField(label='Planilha para carga')
+    docfile = forms.FileField(
+        label='Planilha para carga',
+        widget=forms.FileInput(attrs={'accept': '.xlsx'})
+    )
+    
+    def clean_docfile(self):
+        file = self.cleaned_data.get('docfile')
+
+        if file:
+            ext = os.path.splitext(file.name)[1].lower()
+
+            if ext != '.xlsx':
+                raise forms.ValidationError(
+                    'Arquivo inválido. Envie apenas arquivos .xlsx.'
+                )
+
+        return file
 
 @admin.register(Order)
 class MyModelAdmin(ExtraButtonsMixin, admin.ModelAdmin):
     @button(label='Upload planilha de carga', icon='fa-solid fa-upload', order=1)
     def upload(self, request):
-        context = self.get_common_context(request, title='Upload')
+        context = self.get_common_context(request, title='Upload planilha de carga')
         if request.method == 'POST':
             form = UploadForm(request.POST, request.FILES)
             if form.is_valid():

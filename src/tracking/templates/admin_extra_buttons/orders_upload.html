@@ -1,11 +1,33 @@
 {% extends "admin_extra_buttons/action_page.html" %}
-{% load i18n static admin_list admin_urls %}
+{% load i18n static admin_urls %}
 
 {% block action-content %}
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Processar</button>
-</form>
+<div class="module aligned">
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
 
+        {% if form.errors %}
+            <p class="errornote">
+                Por favor, corrija os erros abaixo.
+            </p>
+        {% endif %}
+
+        <fieldset class="module aligned">
+            <div class="form-row">
+                {{ form.docfile.errors }}
+                <label for="{{ form.docfile.id_for_label }}">
+                    {{ form.docfile.label }}:
+                </label>
+                {{ form.docfile }}
+                {% if form.docfile.help_text %}
+                    <p class="help">{{ form.docfile.help_text }}</p>
+                {% endif %}
+            </div>
+        </fieldset>
+
+        <div class="submit-row">
+            <input type="submit" value="Processar" class="default">
+        </div>
+    </form>
+</div>
 {% endblock %}
