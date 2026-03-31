@@ -11,27 +11,14 @@ from django.template.response import TemplateResponse
 
 from django.contrib.auth.models import Group, User
 
-# Unregister the Group model
+# Removendo os modelos Group e User do admin para simplificar a interface
 admin.site.unregister(Group)
-
-# If you also want to unregister the User model:
 admin.site.unregister(User) 
 
-
-# admin.site.register(Country)
-   
-# @admin.register(State)
-# class StateAdmin(admin.ModelAdmin):
-#     list_display = ("name", "country")
-
-# @admin.register(City)
-# class CityAdmin(admin.ModelAdmin):
-#     list_display = ("name", "state", "country")
-    
-#     def country(self, obj):
-#         return obj.state.country
-
-#     country.short_description = "Country"
+# Personalizando o título e o cabeçalho do site de administração
+admin.site.site_title = "FastLog"
+admin.site.site_header = "FastLog - Administração"
+admin.site.index_title = "Gerenciamento de dados"
 
 class UploadForm(forms.Form):
     docfile = forms.FileField(
@@ -54,8 +41,8 @@ class UploadForm(forms.Form):
 
 @admin.register(Order)
 class MyModelAdmin(ExtraButtonsMixin, admin.ModelAdmin):
-    list_display = ("order_date", "delivery_date")
-    
+    list_display = ( "nfe", "cnpj", "order_date", "delivery_date", "status")
+       
     @button(label='Upload planilha de carga', icon='fa-solid fa-upload', order=1)
     def upload(self, request):
         context = self.get_common_context(request, title='Upload planilha de carga')
