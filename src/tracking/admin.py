@@ -9,21 +9,29 @@ from django.shortcuts import redirect
 from django.contrib.admin.templatetags.admin_urls import admin_urlname
 from django.template.response import TemplateResponse
 
+from django.contrib.auth.models import Group, User
 
-admin.site.register(Country)
+# Unregister the Group model
+admin.site.unregister(Group)
+
+# If you also want to unregister the User model:
+admin.site.unregister(User) 
+
+
+# admin.site.register(Country)
    
-@admin.register(State)
-class StateAdmin(admin.ModelAdmin):
-    list_display = ("name", "country")
+# @admin.register(State)
+# class StateAdmin(admin.ModelAdmin):
+#     list_display = ("name", "country")
 
-@admin.register(City)
-class CityAdmin(admin.ModelAdmin):
-    list_display = ("name", "state", "country")
+# @admin.register(City)
+# class CityAdmin(admin.ModelAdmin):
+#     list_display = ("name", "state", "country")
     
-    def country(self, obj):
-        return obj.state.country
+#     def country(self, obj):
+#         return obj.state.country
 
-    country.short_description = "Country"
+#     country.short_description = "Country"
 
 class UploadForm(forms.Form):
     docfile = forms.FileField(
@@ -46,6 +54,8 @@ class UploadForm(forms.Form):
 
 @admin.register(Order)
 class MyModelAdmin(ExtraButtonsMixin, admin.ModelAdmin):
+    list_display = ("order_date", "delivery_date")
+    
     @button(label='Upload planilha de carga', icon='fa-solid fa-upload', order=1)
     def upload(self, request):
         context = self.get_common_context(request, title='Upload planilha de carga')
@@ -62,3 +72,14 @@ class MyModelAdmin(ExtraButtonsMixin, admin.ModelAdmin):
         
         context['form'] = form
         return TemplateResponse(request, 'admin_extra_buttons/orders_upload.html', context)
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj = ...):
+        return False
+
+    def has_change_permission(self, request, obj = ...):
+        return False
+    
+ 
