@@ -41,7 +41,7 @@ class UploadForm(forms.Form):
 
 @admin.register(Order)
 class MyModelAdmin(ExtraButtonsMixin, admin.ModelAdmin):
-    list_display = ( "nfe", "cnpj", "order_date", "delivery_date", "status")
+    list_display = ( "nfe", "customer", "carrier", "order_date", "delivery_date", "status")
        
     @button(label='Upload planilha de carga', icon='fa-solid fa-upload', order=1)
     def upload(self, request):
