@@ -1,0 +1,34 @@
+{% extends "admin_extra_buttons/action_page.html" %}
+{% load i18n static admin_urls %}
+
+{% block action-content %}
+<div class="module aligned">
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        {% if form.errors %}
+            <p class="errornote">
+                Por favor, corrija os erros abaixo.
+            </p>
+        {% endif %}
+
+        <fieldset class="module aligned">
+            <div class="form-row">
+                {{ form.docfile.errors }}
+                <label for="{{ form.docfile.id_for_label }}">
+                    {{ form.docfile.label }}:
+                </label>
+                {{ form.docfile }}
+                {% if form.docfile.help_text %}
+                    <p class="help">{{ form.docfile.help_text }}</p>
+                {% endif %}
+            </div>
+        </fieldset>
+
+        <div class="submit-row">
+            <a href="/admin/tracking/order/" class="closelink">Cancelar</a>
+            <input type="submit" value="Processar" class="closebutton">
+        </div>
+    </form>
+</div>
+{% endblock %}

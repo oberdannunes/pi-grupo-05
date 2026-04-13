@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="p-4 p-md-4 mb-4 bg-white border rounded-3 shadow-sm">
+            <div class="container-fluid py-2">
+                <h1 class="display-6 fw-bold">Bem-vindo ao FastLog</h1>
+                <p class="col-md-8 fs-5 text-muted">
+                    Consulte o status de seus pedidos.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Pedidos</h5>
+                <p class="card-text text-muted">
+                    Consulte pedidos cadastrados e acompanhe o andamento de cada entrega.
+                </p>
+                <input type="text" class="form-control mb-3" placeholder="CNPJ">
+                <input type="text" class="form-control mb-3" placeholder="Razão Social">
+                <a href="{% url 'tracking:order_detail' order_id=1 %}" class="btn btn-outline-primary">Ver pedidos</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
