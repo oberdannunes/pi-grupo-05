@@ -36,6 +36,15 @@ class UploadForm(forms.Form):
                 raise forms.ValidationError(
                     'Arquivo inválido. Envie apenas arquivos .xlsx.'
                 )
+                
+        # Se o arquivo for válido, ele será processado       
+        
+        #le linhas
+        
+        # valida
+        # se ok, insere
+        # se não ok, insere na planilha de erros    
+
 
         return file
 
