@@ -1,0 +1,34 @@
+{% extends 'admin/base.html' %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+html[data-theme="light"], :root {
+  {% comment %} --primary: #0d6efd;
+  --secondary: #0d6efd;
+  --link-fg: #0d6efd;
+  --link-selected-fg: #0d6efd; {% endcomment %}
+
+  --primary: #0d6efd;
+  --primary-fg: #fff;
+  --accent: #fff;
+  --secondary: #67ACFA;
+  --body-fg: #333;
+
+  --header-bg: #0d6efd;
+  --breadcrumbs-bg: #67ACFA;
+  --breadcrumbs-fg: white-smoke;
+  --breadcrumbs-link-fg: var(--body-bg);
+}
+
+#header {
+  height: 40px;
+  padding: 8px 40px;
+}
+
+#header #branding a {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+</style>
+{% endblock %}
