@@ -1,13 +1,32 @@
-from django.http import HttpResponse
 from django.shortcuts import render
+from tracking.models.order import Order
+from tracking.models.customer import Customer
 
 def detail(request):
     cnpj = request.POST.get("cnpj", "")
     nfe = request.POST.get("nfe", "")
-    delivered = request.GET.get("delivered", "false").lower() == "true"
-    
-    
-    #TODO: implementar a consulta ao banco de dados para obter os detalhes do pedido com base no CNPJ e NFE fornecidos
-    template = "orders/order_detail_delivered.html" if delivered else "orders/order_detail_pending.html"
-        
-    return render(request, template, {"cnpj": cnpj, "nfe": nfe, "delivered": delivered})
+    error = ""
+
+    if request.method == "POST" and cnpj and nfe:
+        # tira pontos, barras e tracos do cnpj pra comparar só os numeros
+        cnpj_limpo = cnpj.replace(".", "").replace("/", "").replace("-", "")
+
+        try:
+            cliente = Customer.objects.get(cnpj=cnpj_limpo)
+            pedido = Order.objects.get(nfe=nfe, customer=cliente)
+
+            if pedido.delivery_date:
+                return render(request, "orders/order_detail_delivered.html", {
+                    "pedido": pedido,
+                })
+            else:
+                return render(request, "orders/order_detail_pending.html", {
+                    "pedido": pedido,
+                })
+
+        except Customer.DoesNotExist:
+            error = "CNPJ não encontrado."
+        except Order.DoesNotExist:
+            error = "Pedido não encontrado para este CNPJ e NFe."
+
+    return render(request, "core/home_index.html", {"error": error})
