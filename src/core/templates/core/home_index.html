@@ -82,8 +82,11 @@
                     <h5 class="fw-bold text-center mb-3" style="color: #150b5e;">Consultar Status de Pedido</h5>
                     <form method="post" action="{% url 'tracking:order_detail' %}">
                         {% csrf_token %}
-                        <input type="text" name="cnpj" class="form-control mb-3" placeholder="CNPJ">
-                        <input type="text" name="nfe" class="form-control mb-3" placeholder="Número da Nota Fiscal (NFe)">
+                        {% if error %}
+                            <div class="alert alert-danger">{{ error }}</div>
+                        {% endif %}
+                        <input type="text" name="cnpj" class="form-control mb-3" placeholder="CNPJ" maxlength="18">
+                        <input type="text" name="nfe" class="form-control mb-3" placeholder="Número da Nota Fiscal (NFe)" maxlength="20">
                         <button type="submit" class="btn w-100 text-white fw-bold" style="background: #150b5e; border-radius: 8px; padding: 10px;">Consultar</button>
                     </form>
                 </div>
