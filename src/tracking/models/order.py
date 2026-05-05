@@ -26,5 +26,9 @@ class Order(models.Model):
             models.Index(fields=['order_date']),
         ]
     
+    def customer_cnpj(self):
+        return self.customer.cnpj
+    customer_cnpj.short_description = 'CNPJ Cliente'
+    
     def __str__(self):
         return f"NFE: {self.nfe} - {self.get_status_display()}"

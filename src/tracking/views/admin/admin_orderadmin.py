@@ -9,7 +9,7 @@ from tracking.services.order_excel_import import OrderExcelImportService
 
 @admin.register(Order)
 class OrderAdmin(ExtraButtonsMixin, admin.ModelAdmin):
-    list_display = ( "nfe", "customer", "carrier", "order_date", "delivery_date", "status")
+    list_display = ( "nfe", "customer_cnpj", "customer", "carrier", "order_date", "delivery_date", "status")
        
     @button(label='Upload planilha de carga', icon='fa-solid fa-upload', order=1)
     def upload(self, request):
