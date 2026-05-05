@@ -26,5 +26,8 @@ def detail(request):
 
         except (Customer.DoesNotExist, Order.DoesNotExist):
             error = "Nenhum pedido encontrado para os dados informados."
+            
+    else:
+        error = "Por favor, preencha ambos os campos: CNPJ e NFE."
 
     return render(request, "core/home_index.html", {"error": error})
