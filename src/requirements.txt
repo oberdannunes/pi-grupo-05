@@ -13,6 +13,7 @@ pandas==2.3.3
 psycopg==3.2.13
 psycopg-binary==3.2.13
 python-dateutil==2.9.0.post0
+python-dotenv==1.2.1
 pytz==2026.1.post1
 six==1.17.0
 sqlparse==0.5.5
