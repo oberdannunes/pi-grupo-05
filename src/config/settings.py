@@ -10,7 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +29,15 @@ SECRET_KEY = 'django-insecure-1f(47dsqr-yzn-!1ilnw5v-$10al8@qvvd*fy%hjph=eadsta7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fastlog.bravemoss-a1b57c9b.centralus.azurecontainerapps.io']
+ALLOWED_HOSTS = [
+    'localhost', 
+    '127.0.0.1', 
+    'fastlog.bravemoss-a1b57c9b.centralus.azurecontainerapps.io'
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://fastlog.bravemoss-a1b57c9b.centralus.azurecontainerapps.io'
+]
 
 
 # Application definition
@@ -78,12 +90,26 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+
+if ENVIRONMENT == "prod":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME"),
+            "USER": os.getenv("DB_USER"),
+            "PASSWORD": os.getenv("DB_PASSWORD"),
+            "HOST": os.getenv("DB_HOST"),
+            "PORT": os.getenv("DB_PORT", "5432"),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
