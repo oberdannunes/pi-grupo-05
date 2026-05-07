@@ -1,15 +1,15 @@
 {% extends "orders/order_detail_base.html" %}
 {% block delivery_info %}
-                        <table class="table table-borderless text-start mt-3 mb-3">
-                            <tr>
-                                <td class="text-muted">Data da Coleta</td>
-                                <td class="text-end fw-bold">22/01/2024</td>
-                            </tr>
-                        </table>
+    <table class="table table-borderless text-start mt-3 mb-3">
+        <tr>
+            <td class="text-muted">Data da Coleta</td>
+            <td class="text-end fw-bold">{{ pedido.order_date|date:"d/m/Y" }}</td>
+        </tr>
+    </table>
 
-                        <div class="my-3">
-                            <span class="badge bg-warning text-dark fs-5 p-3">Entrega em andamento</span>
-                        </div>
+    <div class="my-3">
+        <span class="badge bg-warning text-dark fs-5 p-3">Entrega em andamento</span>
+    </div>
 
-                        <p class="text-muted small mb-0">Seu pedido já foi coletado e está a caminho! O status será atualizado automaticamente assim que a transportadora confirmar a entrega.</p>
-{% endblock %}                   
+    <p class="text-muted small mb-0">Seu pedido já foi coletado e está a caminho! O status será atualizado automaticamente assim que a transportadora confirmar a entrega.</p>
+{% endblock %}

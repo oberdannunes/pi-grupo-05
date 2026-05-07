@@ -1,17 +1,17 @@
 {% extends "orders/order_detail_base.html" %}
 {% block delivery_info %}
-                        <div class="my-3">
-                            <span class="badge bg-success fs-5 p-3">Entregue</span>
-                        </div>
+    <div class="my-3">
+        <span class="badge bg-success fs-5 p-3">Entregue</span>
+    </div>
 
-                        <table class="table table-borderless text-start mt-3 mb-0">
-                            <tr>
-                                <td class="text-muted">Data da Coleta</td>
-                                <td class="text-end fw-bold">11/01/2024</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Data da Entrega</td>
-                                <td class="text-end fw-bold text-success">14/01/2024</td>
-                            </tr>
-                        </table>
-{% endblock %}                   
+    <table class="table table-borderless text-start mt-3 mb-0">
+        <tr>
+            <td class="text-muted">Data da Coleta</td>
+            <td class="text-end fw-bold">{{ pedido.order_date|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+            <td class="text-muted">Data da Entrega</td>
+            <td class="text-end fw-bold text-success">{{ pedido.delivery_date|date:"d/m/Y" }}</td>
+        </tr>
+    </table>
+{% endblock %}
