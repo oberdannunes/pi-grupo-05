@@ -145,7 +145,7 @@ class OrderExcelImportService:
         states_dict = {uf: self._get_or_create_state(uf, country) for uf in sorted(unique_states)}
         cities_dict = {city: self._get_or_create_city(city, states_dict[uf]) for city, uf in city_state_map.items()}
         
-        print(f'   ✅ 1 País, {len(states_dict)} Estados, {len(cities_dict)} Cidades processados.')
+        print(f'   ✅ 1 País, {len(states_dict)} Estados, {len(cities_dict)} Cidades processadas.')
         return {'country': country, 'states': states_dict, 'cities': cities_dict}
 
     def _get_or_create_customer(self, customer_name, cnpj, city):
@@ -171,8 +171,10 @@ class OrderExcelImportService:
         carrier_name_clean = str(carrier_name).strip()
         carrier, created = Carrier.objects.get_or_create(
             name=carrier_name_clean,
-            city=city,
-            defaults={'name': carrier_name_clean, 'cnpj': '', 'city': city}
+            defaults={
+                'cnpj': '', 
+                'city': city
+                }
         )
         return carrier
 
