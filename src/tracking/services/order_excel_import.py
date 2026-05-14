@@ -13,6 +13,11 @@ class OrderExcelImportService:
         ]
         self.validation_errors = []
         self.validation_success = []
+        self.logs = []
+    
+    def log(self, message):
+        self.logs.append(message)
+        print(message)
 
     def _validate_row(self, row_index, row):
         """Valida uma linha individual do Excel com tratamento robusto para datas"""
@@ -42,6 +47,12 @@ class OrderExcelImportService:
             if pais != 'BRASIL':
                 errors.append(f'País inválido: "{pais}" (esperado: BRASIL)')
         
+        # Validação de CNPJ
+        if not pd.isna(row.get('CNPJ PARC.')):
+            cnpj_parc = str(row.get('CNPJ PARC.')).strip()
+            if not cnpj_parc.isdigit() or len(cnpj_parc) > 14:
+                errors.append(f'CNPJ inválido: "{cnpj_parc}" (deve conter apenas dígitos)')
+        
         try:
             nfe = row.get('NFE')
             if pd.notna(nfe):
@@ -55,7 +66,7 @@ class OrderExcelImportService:
 
     def _validate_dataframe(self, df):
         """Valida todo o DataFrame"""
-        print('\n🔍 PASSO 2: VALIDANDO DADOS...')
+        self.log('\n🔍 PASSO 2: VALIDANDO DADOS...')
         
         valid_rows = 0
         invalid_rows = 0
@@ -99,8 +110,8 @@ class OrderExcelImportService:
                     'erros': errors
                 })
         
-        print(f'   ✅ Linhas válidas: {valid_rows}')
-        print(f'   ❌ Linhas inválidas: {invalid_rows}')
+        self.log(f'   ✅ Linhas válidas: {valid_rows}')
+        self.log(f'   ❌ Linhas inválidas: {invalid_rows}')
         return valid_rows, invalid_rows
 
     def _get_or_create_country(self, country_name='BRASIL'):
@@ -129,7 +140,7 @@ class OrderExcelImportService:
         return city
 
     def _create_hierarchy(self, df):
-        print('\n📊 PASSO 3: CRIANDO HIERARQUIA (PAÍS → ESTADO → CIDADE)...')
+        self.log('\n📊 PASSO 3: CRIANDO HIERARQUIA (PAÍS → ESTADO → CIDADE)...')
         country = self._get_or_create_country('BRASIL')
         
         unique_states = set()
@@ -145,15 +156,33 @@ class OrderExcelImportService:
         states_dict = {uf: self._get_or_create_state(uf, country) for uf in sorted(unique_states)}
         cities_dict = {city: self._get_or_create_city(city, states_dict[uf]) for city, uf in city_state_map.items()}
         
-        print(f'   ✅ 1 País, {len(states_dict)} Estados, {len(cities_dict)} Cidades processados.')
+        self.log(f'   ✅ 1 País, {len(states_dict)} Estados, {len(cities_dict)} Cidades processadas.')
         return {'country': country, 'states': states_dict, 'cities': cities_dict}
 
+    def _normalize_cnpj(self, cnpj):
+        """Normaliza CNPJ para 14 dígitos com zeros à esquerda"""
+        if pd.isna(cnpj) or not cnpj:
+            return ''
+        cnpj_str = str(cnpj).strip()
+        if not cnpj_str.isdigit():
+            return ''
+        # Completa com zeros à esquerda para garantir 14 dígitos
+        return ("0" * 14 + cnpj_str)[-14:]
+
     def _get_or_create_customer(self, customer_name, cnpj, city):
+        if not city:
+            # Retorna None se não houver cidade válida
+            return None
+            
         customer_name_clean = str(customer_name).strip()
-        cnpj_clean = str(cnpj).strip() if pd.notna(cnpj) else ''
+        cnpj_clean = self._normalize_cnpj(cnpj)
+        
+        if not cnpj_clean:
+            # Retorna None se CNPJ inválido
+            return None
         
         customer, created = Customer.objects.get_or_create(
-            name=customer_name_clean,
+            cnpj=cnpj_clean,
             defaults={
                 'name': customer_name_clean,
                 'code': '',
@@ -161,23 +190,25 @@ class OrderExcelImportService:
                 'city': city
             }
         )
-        # Atualiza CNPJ se o cliente já existir mas estiver com o campo vazio
-        if not created and not customer.cnpj and cnpj_clean:
-            customer.cnpj = cnpj_clean
-            customer.save(update_fields=['cnpj'])
+        # Atualiza nome se o cliente já existir
+        if not created and customer.name != customer_name_clean:
+            customer.name = customer_name_clean
+            customer.save(update_fields=['name'])
         return customer
 
     def _get_or_create_carrier(self, carrier_name, city):
         carrier_name_clean = str(carrier_name).strip()
         carrier, created = Carrier.objects.get_or_create(
             name=carrier_name_clean,
-            city=city,
-            defaults={'name': carrier_name_clean, 'cnpj': '', 'city': city}
+            defaults={
+                'cnpj': '', 
+                'city': city
+                }
         )
         return carrier
 
     def _create_customers_and_carriers(self, df, hierarchy_data):
-        print('\n👥 PASSO 4: CRIANDO CLIENTES E TRANSPORTADORAS...')
+        self.log('\n👥 PASSO 4: CRIANDO CLIENTES E TRANSPORTADORAS...')
         cities_dict = hierarchy_data['cities']
         
         unique_customers = {}
@@ -190,26 +221,39 @@ class OrderExcelImportService:
             transportadora = str(row.get('TRANSPORTADORA')).strip()
             cidade = str(row.get('CIDADE')).strip().upper()
             
-            if cliente not in unique_customers:
-                unique_customers[cliente] = {'cidade': cidade, 'cnpj': cnpj_parc}
+            # Normaliza CNPJ para usar como chave consistentemente
+            cnpj_normalized = self._normalize_cnpj(cnpj_parc)
+            
+            # Valida se cidade existe na hierarquia
+            if cidade not in cities_dict:
+                continue
+            
+            # Deduplicação pelo CNPJ normalizado
+            if cnpj_normalized and cnpj_normalized not in unique_customers:
+                unique_customers[cnpj_normalized] = {'nome': cliente, 'cidade': cidade}
             if transportadora not in unique_carriers:
                 unique_carriers[transportadora] = cidade
                 
-        customers = {
-            name: self._get_or_create_customer(name, data['cnpj'], cities_dict.get(data['cidade']))
-            for name, data in unique_customers.items() if cities_dict.get(data['cidade'])
-        }
+        # Cria dicionário de clientes apenas com os que foram criados com sucesso
+        customers = {}
+        for cnpj, data in unique_customers.items():
+            city_obj = cities_dict.get(data['cidade'])
+            customer = self._get_or_create_customer(data['nome'], cnpj, city_obj)
+            if customer:
+                customers[cnpj] = customer
         
-        carriers = {
-            name: self._get_or_create_carrier(name, cities_dict.get(city))
-            for name, city in unique_carriers.items() if cities_dict.get(city)
-        }
+        carriers = {}
+        for name, city_name in unique_carriers.items():
+            city_obj = cities_dict.get(city_name)
+            if city_obj:
+                carrier = self._get_or_create_carrier(name, city_obj)
+                carriers[name] = carrier
         
-        print(f'   ✅ {len(customers)} Clientes e {len(carriers)} Transportadoras processados.')
+        self.log(f'   ✅ {len(customers)} Clientes e {len(carriers)} Transportadoras processados.')
         return {'customers': customers, 'carriers': carriers}
 
     def _create_orders(self, df, customer_carrier_data):
-        print('\n📦 PASSO 5: CRIANDO PEDIDOS...')
+        self.log('\n📦 PASSO 5: CRIANDO PEDIDOS...')
         customers = customer_carrier_data['customers']
         carriers = customer_carrier_data['carriers']
         
@@ -219,8 +263,8 @@ class OrderExcelImportService:
         records = df.to_dict('records')
         for idx, row in enumerate(records):
             try:
-                cliente_nome = str(row.get('RAZAO SOCIAL')).strip()
                 transportadora_nome = str(row.get('TRANSPORTADORA')).strip()
+                cnpj_parc = row.get('CNPJ PARC.')
                 nfe = str(int(row.get('NFE')))
                 order_date = pd.to_datetime(row.get('DT. PEDIDO')).date()
                 
@@ -240,7 +284,11 @@ class OrderExcelImportService:
                 else:
                     status = 'PENDENTE'
                 
-                customer = customers.get(cliente_nome)
+                # Normaliza CNPJ para busca consistente
+                cnpj_normalized = self._normalize_cnpj(cnpj_parc)
+                
+                # Busca cliente pelo CNPJ normalizado
+                customer = customers.get(cnpj_normalized)
                 carrier = carriers.get(transportadora_nome)
                 
                 if not customer or not carrier:
@@ -263,9 +311,9 @@ class OrderExcelImportService:
                 
             except Exception as e:
                 orders_errors += 1
-                print(f'   ❌ Linha {idx + 2}: Erro ao criar pedido: {str(e)}')
+                self.log(f'   ❌ Linha {idx + 2}: Erro ao criar pedido: {str(e)}')
         
-        print(f'   ✅ {orders_created} Pedidos inseridos/atualizados. {orders_errors} Erros.')
+        self.log(f'   ✅ {orders_created} Pedidos inseridos/atualizados. {orders_errors} Erros.')
         return {'orders_created': orders_created, 'orders_errors': orders_errors}
 
     @transaction.atomic
@@ -275,17 +323,17 @@ class OrderExcelImportService:
             raise ValueError('Nenhum arquivo fornecido.')
         
         try:
-            print('📖 PASSO 1: LENDO ARQUIVO EXCEL...')
+            self.log('📖 PASSO 1: LENDO ARQUIVO EXCEL...')
             df = pd.read_excel(file, sheet_name='FRETES CONSOLIDADA')
             
-            print(f'✅ Arquivo lido com sucesso! Shape: {df.shape[0]} linhas, {df.shape[1]} colunas')
+            self.log(f'✅ Arquivo lido com sucesso! Shape: {df.shape[0]} linhas, {df.shape[1]} colunas')
             
             valid_rows, invalid_rows = self._validate_dataframe(df)
             
             if invalid_rows > 0:
-                print(f'\n⚠️  VALIDAÇÃO ENCONTROU ERROS (mostrando primeiros 5):')
+                self.log(f'\n⚠️  VALIDAÇÃO ENCONTROU ERROS (mostrando primeiros 5):')
                 for err in self.validation_errors[:5]:
-                    print(f'   Linha {err["linha"]}: {", ".join(err["erros"])}')
+                    self.log(f'   Linha {err["linha"]}: {", ".join(err["erros"])}')
             
             # Executa a esteira de importação apenas com dados validados não interrompe o fluxo geral
             hierarchy_data = self._create_hierarchy(df)
@@ -301,14 +349,15 @@ class OrderExcelImportService:
                 'validation_success': self.validation_success,
                 'hierarchy_data': hierarchy_data,
                 'customer_carrier_data': customer_carrier_data,
-                'orders_data': orders_data
+                'orders_data': orders_data,
+                'logs': self.logs
             }
             
         except Exception as e:
-            print(f'❌ Erro catastrófico ao processar arquivo. Rollback executado: {str(e)}')
+            self.log(f'❌ Erro catastrófico ao processar arquivo. Rollback executado: {str(e)}')
             import traceback
             traceback.print_exc()
             return {
                 'success': False,
-                'message': f'Erro ao processar arquivo: {str(e)}'
+                'logs': self.logs
             }
