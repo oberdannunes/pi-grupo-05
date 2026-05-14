@@ -13,6 +13,11 @@ class OrderExcelImportService:
         ]
         self.validation_errors = []
         self.validation_success = []
+        self.logs = []
+    
+    def log(self, message):
+        self.logs.append(message)
+        print(message)
 
     def _validate_row(self, row_index, row):
         """Valida uma linha individual do Excel com tratamento robusto para datas"""
@@ -61,7 +66,7 @@ class OrderExcelImportService:
 
     def _validate_dataframe(self, df):
         """Valida todo o DataFrame"""
-        print('\n🔍 PASSO 2: VALIDANDO DADOS...')
+        self.log('\n🔍 PASSO 2: VALIDANDO DADOS...')
         
         valid_rows = 0
         invalid_rows = 0
@@ -105,8 +110,8 @@ class OrderExcelImportService:
                     'erros': errors
                 })
         
-        print(f'   ✅ Linhas válidas: {valid_rows}')
-        print(f'   ❌ Linhas inválidas: {invalid_rows}')
+        self.log(f'   ✅ Linhas válidas: {valid_rows}')
+        self.log(f'   ❌ Linhas inválidas: {invalid_rows}')
         return valid_rows, invalid_rows
 
     def _get_or_create_country(self, country_name='BRASIL'):
@@ -135,7 +140,7 @@ class OrderExcelImportService:
         return city
 
     def _create_hierarchy(self, df):
-        print('\n📊 PASSO 3: CRIANDO HIERARQUIA (PAÍS → ESTADO → CIDADE)...')
+        self.log('\n📊 PASSO 3: CRIANDO HIERARQUIA (PAÍS → ESTADO → CIDADE)...')
         country = self._get_or_create_country('BRASIL')
         
         unique_states = set()
@@ -151,7 +156,7 @@ class OrderExcelImportService:
         states_dict = {uf: self._get_or_create_state(uf, country) for uf in sorted(unique_states)}
         cities_dict = {city: self._get_or_create_city(city, states_dict[uf]) for city, uf in city_state_map.items()}
         
-        print(f'   ✅ 1 País, {len(states_dict)} Estados, {len(cities_dict)} Cidades processadas.')
+        self.log(f'   ✅ 1 País, {len(states_dict)} Estados, {len(cities_dict)} Cidades processadas.')
         return {'country': country, 'states': states_dict, 'cities': cities_dict}
 
     def _normalize_cnpj(self, cnpj):
@@ -203,7 +208,7 @@ class OrderExcelImportService:
         return carrier
 
     def _create_customers_and_carriers(self, df, hierarchy_data):
-        print('\n👥 PASSO 4: CRIANDO CLIENTES E TRANSPORTADORAS...')
+        self.log('\n👥 PASSO 4: CRIANDO CLIENTES E TRANSPORTADORAS...')
         cities_dict = hierarchy_data['cities']
         
         unique_customers = {}
@@ -244,11 +249,11 @@ class OrderExcelImportService:
                 carrier = self._get_or_create_carrier(name, city_obj)
                 carriers[name] = carrier
         
-        print(f'   ✅ {len(customers)} Clientes e {len(carriers)} Transportadoras processados.')
+        self.log(f'   ✅ {len(customers)} Clientes e {len(carriers)} Transportadoras processados.')
         return {'customers': customers, 'carriers': carriers}
 
     def _create_orders(self, df, customer_carrier_data):
-        print('\n📦 PASSO 5: CRIANDO PEDIDOS...')
+        self.log('\n📦 PASSO 5: CRIANDO PEDIDOS...')
         customers = customer_carrier_data['customers']
         carriers = customer_carrier_data['carriers']
         
@@ -306,9 +311,9 @@ class OrderExcelImportService:
                 
             except Exception as e:
                 orders_errors += 1
-                print(f'   ❌ Linha {idx + 2}: Erro ao criar pedido: {str(e)}')
+                self.log(f'   ❌ Linha {idx + 2}: Erro ao criar pedido: {str(e)}')
         
-        print(f'   ✅ {orders_created} Pedidos inseridos/atualizados. {orders_errors} Erros.')
+        self.log(f'   ✅ {orders_created} Pedidos inseridos/atualizados. {orders_errors} Erros.')
         return {'orders_created': orders_created, 'orders_errors': orders_errors}
 
     @transaction.atomic
@@ -318,17 +323,17 @@ class OrderExcelImportService:
             raise ValueError('Nenhum arquivo fornecido.')
         
         try:
-            print('📖 PASSO 1: LENDO ARQUIVO EXCEL...')
+            self.log('📖 PASSO 1: LENDO ARQUIVO EXCEL...')
             df = pd.read_excel(file, sheet_name='FRETES CONSOLIDADA')
             
-            print(f'✅ Arquivo lido com sucesso! Shape: {df.shape[0]} linhas, {df.shape[1]} colunas')
+            self.log(f'✅ Arquivo lido com sucesso! Shape: {df.shape[0]} linhas, {df.shape[1]} colunas')
             
             valid_rows, invalid_rows = self._validate_dataframe(df)
             
             if invalid_rows > 0:
-                print(f'\n⚠️  VALIDAÇÃO ENCONTROU ERROS (mostrando primeiros 5):')
+                self.log(f'\n⚠️  VALIDAÇÃO ENCONTROU ERROS (mostrando primeiros 5):')
                 for err in self.validation_errors[:5]:
-                    print(f'   Linha {err["linha"]}: {", ".join(err["erros"])}')
+                    self.log(f'   Linha {err["linha"]}: {", ".join(err["erros"])}')
             
             # Executa a esteira de importação apenas com dados validados não interrompe o fluxo geral
             hierarchy_data = self._create_hierarchy(df)
@@ -344,14 +349,15 @@ class OrderExcelImportService:
                 'validation_success': self.validation_success,
                 'hierarchy_data': hierarchy_data,
                 'customer_carrier_data': customer_carrier_data,
-                'orders_data': orders_data
+                'orders_data': orders_data,
+                'logs': self.logs
             }
             
         except Exception as e:
-            print(f'❌ Erro catastrófico ao processar arquivo. Rollback executado: {str(e)}')
+            self.log(f'❌ Erro catastrófico ao processar arquivo. Rollback executado: {str(e)}')
             import traceback
             traceback.print_exc()
             return {
                 'success': False,
-                'message': f'Erro ao processar arquivo: {str(e)}'
+                'logs': self.logs
             }
