@@ -42,6 +42,12 @@ class OrderExcelImportService:
             if pais != 'BRASIL':
                 errors.append(f'País inválido: "{pais}" (esperado: BRASIL)')
         
+        # Validação de CNPJ
+        if not pd.isna(row.get('CNPJ PARC.')):
+            cnpj_parc = str(row.get('CNPJ PARC.')).strip()
+            if not cnpj_parc.isdigit() or len(cnpj_parc) > 14:
+                errors.append(f'CNPJ inválido: "{cnpj_parc}" (deve conter apenas dígitos)')
+        
         try:
             nfe = row.get('NFE')
             if pd.notna(nfe):
@@ -148,12 +154,30 @@ class OrderExcelImportService:
         print(f'   ✅ 1 País, {len(states_dict)} Estados, {len(cities_dict)} Cidades processadas.')
         return {'country': country, 'states': states_dict, 'cities': cities_dict}
 
+    def _normalize_cnpj(self, cnpj):
+        """Normaliza CNPJ para 14 dígitos com zeros à esquerda"""
+        if pd.isna(cnpj) or not cnpj:
+            return ''
+        cnpj_str = str(cnpj).strip()
+        if not cnpj_str.isdigit():
+            return ''
+        # Completa com zeros à esquerda para garantir 14 dígitos
+        return ("0" * 14 + cnpj_str)[-14:]
+
     def _get_or_create_customer(self, customer_name, cnpj, city):
+        if not city:
+            # Retorna None se não houver cidade válida
+            return None
+            
         customer_name_clean = str(customer_name).strip()
-        cnpj_clean = str(cnpj).strip() if pd.notna(cnpj) else ''
+        cnpj_clean = self._normalize_cnpj(cnpj)
+        
+        if not cnpj_clean:
+            # Retorna None se CNPJ inválido
+            return None
         
         customer, created = Customer.objects.get_or_create(
-            name=customer_name_clean,
+            cnpj=cnpj_clean,
             defaults={
                 'name': customer_name_clean,
                 'code': '',
@@ -161,10 +185,10 @@ class OrderExcelImportService:
                 'city': city
             }
         )
-        # Atualiza CNPJ se o cliente já existir mas estiver com o campo vazio
-        if not created and not customer.cnpj and cnpj_clean:
-            customer.cnpj = cnpj_clean
-            customer.save(update_fields=['cnpj'])
+        # Atualiza nome se o cliente já existir
+        if not created and customer.name != customer_name_clean:
+            customer.name = customer_name_clean
+            customer.save(update_fields=['name'])
         return customer
 
     def _get_or_create_carrier(self, carrier_name, city):
@@ -192,20 +216,33 @@ class OrderExcelImportService:
             transportadora = str(row.get('TRANSPORTADORA')).strip()
             cidade = str(row.get('CIDADE')).strip().upper()
             
-            if cliente not in unique_customers:
-                unique_customers[cliente] = {'cidade': cidade, 'cnpj': cnpj_parc}
+            # Normaliza CNPJ para usar como chave consistentemente
+            cnpj_normalized = self._normalize_cnpj(cnpj_parc)
+            
+            # Valida se cidade existe na hierarquia
+            if cidade not in cities_dict:
+                continue
+            
+            # Deduplicação pelo CNPJ normalizado
+            if cnpj_normalized and cnpj_normalized not in unique_customers:
+                unique_customers[cnpj_normalized] = {'nome': cliente, 'cidade': cidade}
             if transportadora not in unique_carriers:
                 unique_carriers[transportadora] = cidade
                 
-        customers = {
-            name: self._get_or_create_customer(name, data['cnpj'], cities_dict.get(data['cidade']))
-            for name, data in unique_customers.items() if cities_dict.get(data['cidade'])
-        }
+        # Cria dicionário de clientes apenas com os que foram criados com sucesso
+        customers = {}
+        for cnpj, data in unique_customers.items():
+            city_obj = cities_dict.get(data['cidade'])
+            customer = self._get_or_create_customer(data['nome'], cnpj, city_obj)
+            if customer:
+                customers[cnpj] = customer
         
-        carriers = {
-            name: self._get_or_create_carrier(name, cities_dict.get(city))
-            for name, city in unique_carriers.items() if cities_dict.get(city)
-        }
+        carriers = {}
+        for name, city_name in unique_carriers.items():
+            city_obj = cities_dict.get(city_name)
+            if city_obj:
+                carrier = self._get_or_create_carrier(name, city_obj)
+                carriers[name] = carrier
         
         print(f'   ✅ {len(customers)} Clientes e {len(carriers)} Transportadoras processados.')
         return {'customers': customers, 'carriers': carriers}
@@ -221,8 +258,8 @@ class OrderExcelImportService:
         records = df.to_dict('records')
         for idx, row in enumerate(records):
             try:
-                cliente_nome = str(row.get('RAZAO SOCIAL')).strip()
                 transportadora_nome = str(row.get('TRANSPORTADORA')).strip()
+                cnpj_parc = row.get('CNPJ PARC.')
                 nfe = str(int(row.get('NFE')))
                 order_date = pd.to_datetime(row.get('DT. PEDIDO')).date()
                 
@@ -242,7 +279,11 @@ class OrderExcelImportService:
                 else:
                     status = 'PENDENTE'
                 
-                customer = customers.get(cliente_nome)
+                # Normaliza CNPJ para busca consistente
+                cnpj_normalized = self._normalize_cnpj(cnpj_parc)
+                
+                # Busca cliente pelo CNPJ normalizado
+                customer = customers.get(cnpj_normalized)
                 carrier = carriers.get(transportadora_nome)
                 
                 if not customer or not carrier:
