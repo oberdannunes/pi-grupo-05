@@ -1,0 +1,15 @@
+{% extends "admin_extra_buttons/action_page.html" %}
+{% block action-content %}
+<div class="module aligned">
+    <pre style="line-height: 1">
+{% for linha in import_result.logs %}
+{{ linha }}
+{% endfor %}
+    </pre>
+
+    <div class="submit-row">
+        <a href="/admin/tracking/order/" class="closelink">Voltar</a>
+    </div>
+</div>
+
+{% endblock %}
